@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: openpm_db
+    environment:
+      POSTGRES_DB: openpm
+      POSTGRES_USER: openpm
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-openpm_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - openpm_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openpm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: openpm_redis
+    networks:
+      - openpm_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI后端
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: openpm_backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://openpm:${DB_PASSWORD:-openpm_secret}@postgres:5432/openpm
+      DB_PASSWORD: ${DB_PASSWORD:-openpm_secret}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-change_this_secret_key_in_production}
+      ALGORITHM: HS256
+      NGINX_PORT: 8080
+      LLM_TYPE: ${LLM_TYPE:-none}
+      LLM_API_URL: ${LLM_API_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      ENV: ${ENV:-development}
+      DEBUG: ${DEBUG:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - openpm_network
+    restart: unless-stopped
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: openpm_nginx
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - openpm_network
+    restart: unless-stopped
+
+  # LLM服务 (可选)
+  llm:
+    image: localai/localai:latest
+    container_name: openpm_llm
+    environment:
+      MODELS_PATH: /models
+    volumes:
+      - ./models:/models
+    networks:
+      - openpm_network
+    restart: unless-stopped
+    profiles:
+      - local-llm
+
+networks:
+  openpm_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

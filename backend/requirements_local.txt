@@ -1,0 +1,39 @@
+# Core Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+
+# Database (SQLite for local testing)
+sqlalchemy==2.0.23
+aiosqlite==0.19.0
+alembic==1.12.1
+
+# Auth & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# No Redis/Celery for local testing
+# redis==5.0.1
+# celery==5.3.4
+
+# No LLM for local testing
+# langchain==0.1.0
+# openai==1.3.0
+
+# Utilities
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# Export (commented out for local testing)
+# openpyxl==3.1.2
+# python-docx==1.1.0
+
+# Logging
+loguru==0.7.2
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.1

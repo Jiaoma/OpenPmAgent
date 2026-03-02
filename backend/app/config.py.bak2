@@ -1,0 +1,51 @@
+"""Application configuration management."""
+from typing import Optional
+from pydantic_settings import BaseSettings
+from pydantic import Field
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    # Database
+    db_password: str = Field(default="openpm_local")
+    database_url: str = Field(default="sqlite+aiosqlite:///./openpm_local.db")
+
+    # Redis
+    redis_url: str
+
+    # Security
+    secret_key: str
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 120  # 2 hours
+
+    # Nginx
+    nginx_port: int = 8080
+
+    # LLM
+    llm_type: str = "none"  # none, openai, local
+    llm_api_url: Optional[str] = None
+    llm_api_key: Optional[str] = None
+
+    # Backup
+    backup_schedule: str = "0 2 * * *"  # Daily at 2 AM
+    backup_retention_days: int = 30
+
+    # Environment
+    env: str = "development"
+    debug: bool = True
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
+
+
+# Global settings instance
+settings = get_settings()
