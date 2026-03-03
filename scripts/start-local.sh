@@ -170,6 +170,43 @@ EOF
 echo -e "${GREEN}Starting frontend...${NC}"
 cd ../frontend
 
+cat > .env <<'EOF'
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+EOF
+
+cat > vite.config.ts <<'EOF'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/docs': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/redoc': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
+})
+EOF
+
 # Install frontend dependencies
 if [ ! -d "node_modules" ]; then
     echo -e "${YELLOW}Installing frontend dependencies...${NC}"
